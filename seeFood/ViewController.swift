@@ -31,9 +31,10 @@ class ViewController: UIViewController,UIImagePickerControllerDelegate,UINavigat
         if let userPickedImage = info[UIImagePickerControllerOriginalImage] as? UIImage {
             imageView.image = userPickedImage
             //convertiamo l'UIImage in un formato usabile da CoreML
-            guard (try? CIImage(image: userPickedImage)) != nil else {
+            guard let ciImage = CIImage(image: userPickedImage) else {
                 fatalError("Conversion to CIImage failed.")
             }
+            detect(image: ciImage)
         }
         imagePicker.dismiss(animated: true, completion: nil)
     }
@@ -43,6 +44,20 @@ class ViewController: UIViewController,UIImagePickerControllerDelegate,UINavigat
         // VNCoreMLModel viene da Vision che abbiamo importato all'inizio
         guard let model = try? VNCoreMLModel(for: Inceptionv3().model) else {
             fatalError("Loading CoreML failed.")
+        }
+        // qui processa i dati e come esito abbiamo un array di dati elaborati
+        let request = VNCoreMLRequest(model: model) { (request, error) in
+            guard let result = request.results as? [VNClassificationObservation] else {
+                fatalError("Request failed.")
+            }
+            print(result)
+        }
+        //l'handler prende l'immagine CIImage e la passa come request al CoreML
+        let handler = VNImageRequestHandler(ciImage: image)
+        do {
+            try handler.perform([request])
+        } catch {
+            print(error)
         }
     }
     
